@@ -1,0 +1,8 @@
+# UART0 (the USB cable) carries binary frames to the gateway, so nothing else may print on it.
+# These are only applied when sdkconfig is created. If you change them,
+# delete sdkconfig (or run "ESP-IDF: Full Clean") and build again.
+CONFIG_ESP_CONSOLE_NONE=y
+CONFIG_LOG_DEFAULT_LEVEL_NONE=y
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+# 1 ms RTOS tick, so the main loop can wait 5 ms at a time instead of 10 ms.
+CONFIG_FREERTOS_HZ=1000

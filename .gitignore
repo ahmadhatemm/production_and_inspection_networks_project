@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# ESP-IDF generated build files
+build/
+
+# Runtime logs
+*.log
+gateway/logs/
+
+# IDE files
+.vscode/
+.idea/

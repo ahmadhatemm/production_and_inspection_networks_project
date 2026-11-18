@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line 01 — Production &amp; Inspection HMI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Header & Gateway Connection Bar -->
+    <header class="hmi-header">
+        <div class="brand-block">
+            <div class="brand-title-row">
+                <span class="led-indicator led-cyan"></span>
+                <h1>Line 01 — Production &amp; Inspection Control</h1>
+            </div>
+            <span class="brand-sub">Automated Batch Assembly &amp; Quality Verification Station</span>
+        </div>
+
+        <div class="header-controls">
+            <div class="gateway-conn-box" title="Configure Gateway IP and HTTP/WS Port">
+                <span class="conn-label">GATEWAY</span>
+                <input type="text" id="input-gw-host" placeholder="192.168.1.1" aria-label="Gateway Host">
+                <span class="conn-sep">:</span>
+                <input type="number" id="input-gw-port" value="8081" min="1" max="65535" aria-label="Gateway Port">
+                <button id="btn-connect" class="btn-outline">Connect</button>
+            </div>
+
+            <div class="telemetry-pills">
+                <span id="mode-badge" class="status-pill pill-info">MODE: PRODUCTION</span>
+                <span id="heartbeat-badge" class="status-pill pill-idle">TELEMETRY: WAITING</span>
+                <span id="ws-status-badge" class="status-pill pill-idle">WS: CONNECTING</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Watchdog Stale Telemetry Alert Banner -->
+    <div id="watchdog-banner" class="alert-strip alert-warn hidden">
+        <div class="alert-content">
+            <span class="led-indicator led-amber"></span>
+            <strong>Telemetry Watchdog Timeout:</strong>
+            <span id="watchdog-text">No telemetry received from Gateway for &gt; 3000 ms. Controls locked.</span>
+        </div>
+    </div>
+
+    <!-- Gateway Fault Diagnostic Banner -->
+    <div id="fault-banner" class="alert-strip alert-crit hidden">
+        <div class="alert-content">
+            <span class="led-indicator led-red"></span>
+            <strong>System Fault [<span id="fault-code">UNKNOWN</span>]</strong>
+            <span>Source: <code id="fault-device">-</code> — <span id="fault-message">-</span></span>
+        </div>
+        <button id="btn-banner-clear-fault" class="btn-fault-reset">Clear Fault</button>
+    </div>
+
+    <!-- Batch Completion Report Card -->
+    <section id="report-panel" class="report-drawer hidden">
+        <div class="report-top">
+            <div>
+                <h2>Batch Completion Report</h2>
+                <span id="report-subtitle" class="brand-sub">Final production &amp; inspection summary</span>
+            </div>
+            <div class="report-btns">
+                <button id="btn-export-csv" class="btn-outline">Export CSV</button>
+                <button id="btn-close-report" class="btn-outline">Dismiss</button>
+            </div>
+        </div>
+        <div class="report-metrics">
+            <div class="metric-cell"><span>Target</span><strong id="rep-target" class="mono">0</strong></div>
+            <div class="metric-cell"><span>Produced</span><strong id="rep-produced" class="mono">0</strong></div>
+            <div class="metric-cell"><span>Inspected</span><strong id="rep-inspected" class="mono">0</strong></div>
+            <div class="metric-cell metric-pass"><span>Accepted (PASS)</span><strong id="rep-accepted" class="mono">0</strong></div>
+            <div class="metric-cell metric-fail"><span>Rejected (FAIL)</span><strong id="rep-rejected" class="mono">0</strong></div>
+            <div class="metric-cell"><span>Pass Yield</span><strong id="rep-yield" class="mono">0.0%</strong></div>
+            <div class="metric-cell"><span>Duration</span><strong id="rep-duration" class="mono">0 ms</strong></div>
+        </div>
+    </section>
+
+    <!-- Primary Telemetry KPI Strip -->
+    <section class="kpi-grid">
+        <div class="hmi-card">
+            <div class="card-label">System State</div>
+            <div class="state-display-row">
+                <span id="state-led" class="led-indicator led-gray"></span>
+                <div id="gateway-state" class="state-badge state-idle">IDLE</div>
+            </div>
+            <div id="state-hint" class="card-foot">Ready for configuration or batch start</div>
+        </div>
+
+        <div class="hmi-card">
+            <div class="card-label">Batch Progress</div>
+            <div class="kpi-value mono">
+                <span id="count-inspected">0</span>
+                <span id="count-target" class="kpi-unit">/ 0 inspected</span>
+            </div>
+            <div class="card-foot">
+                Produced: <strong id="count-produced" class="mono">0</strong> • Queued: <strong id="count-queued" class="mono">0</strong>
+            </div>
+            <div class="meter-track">
+                <div id="batch-bar" class="meter-fill fill-green"></div>
+            </div>
+        </div>
+
+        <div class="hmi-card">
+            <div class="card-label">Inspection Quality</div>
+            <div class="kpi-value mono">
+                <span id="count-accepted" class="txt-pass">0</span> <span class="kpi-unit">PASS</span>
+                <span class="kpi-divider">/</span>
+                <span id="count-rejected" class="txt-fail">0</span> <span class="kpi-unit">FAIL</span>
+            </div>
+            <div class="card-foot">
+                Active Rule: <code id="active-rule-label">(part_id + 2) mod 5 == 0</code>
+            </div>
+        </div>
+
+        <div class="hmi-card">
+            <div class="card-label">
+                Inspection Queue
+                <span id="queue-blocked" class="blocked-tag">FULL — BLOCKING PROD</span>
+            </div>
+            <div class="queue-readout mono">
+                <span id="queue-depth">0 / 5</span>
+                <span id="queue-cap-label" class="kpi-unit">Cap: 5</span>
+            </div>
+            <div class="meter-track">
+                <div id="queue-bar" class="meter-fill fill-cyan"></div>
+            </div>
+            <div class="card-foot">Backpressure blocks production when full</div>
+        </div>
+    </section>
+
+    <!-- Connected Stations Strip -->
+    <section class="node-strip">
+        <div class="node-card">
+            <div class="node-header">
+                <div class="node-title">
+                    <span id="esp-a-led" class="led-indicator led-red"></span>
+                    <strong>Station A — Production Controller</strong>
+                </div>
+                <span id="esp-a-status" class="node-badge badge-offline">DISCONNECTED</span>
+            </div>
+            <div class="node-specs">
+                <span>USB Serial 115200 8N1 (SLIP / ATR)</span>
+                <span class="mono">Heartbeat Age: <strong id="esp-a-hb">-- ms</strong> / 3000 ms</span>
+            </div>
+            <div class="hb-meter"><div id="esp-a-hb-bar" class="hb-bar"></div></div>
+        </div>
+
+        <div class="node-card">
+            <div class="node-header">
+                <div class="node-title">
+                    <span id="esp-b-led" class="led-indicator led-red"></span>
+                    <strong>Station B — Inspection Controller</strong>
+                </div>
+                <span id="esp-b-status" class="node-badge badge-offline">DISCONNECTED</span>
+            </div>
+            <div class="node-specs">
+                <span>Wi-Fi TCP :5000 (Length-Prefixed JSON)</span>
+                <span class="mono">Heartbeat Age: <strong id="esp-b-hb">-- ms</strong> / 3000 ms</span>
+            </div>
+            <div class="hb-meter"><div id="esp-b-hb-bar" class="hb-bar"></div></div>
+        </div>
+    </section>
+
+    <!-- Main Operator Console & Live Telemetry Workspace -->
+    <main class="workspace-grid">
+        <!-- Left Command & Configuration Panels -->
+        <aside class="control-column">
+            <!-- Panel 1: Batch & State Execution -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Batch Control &amp; Timing</h2>
+                </div>
+                <div id="validation-msg" class="validation-box hidden"></div>
+
+                <div class="field-group">
+                    <label for="input-target-parts">Target Parts (1 – 10,000)</label>
+                    <input type="number" id="input-target-parts" class="mono" value="20" min="1" max="10000">
+                </div>
+                <div class="field-row-2">
+                    <div class="field-group">
+                        <label for="input-cycle-time">Cycle Time (ms)</label>
+                        <input type="number" id="input-cycle-time" class="mono" value="1000" min="10" max="60000">
+                    </div>
+                    <div class="field-group">
+                        <label for="input-inspect-time">Inspect Time (ms)</label>
+                        <input type="number" id="input-inspect-time" class="mono" value="500" min="10" max="60000">
+                    </div>
+                </div>
+
+                <div class="confirmed-strip mono">
+                    <span>Confirmed Gateway Timings:</span>
+                    <strong id="confirmed-timings">Cycle: -- ms | Inspect: -- ms</strong>
+                </div>
+
+                <div class="action-grid">
+                    <button id="btn-start" class="btn-start">Start Batch</button>
+                    <button id="btn-stop" class="btn-stop">Stop</button>
+                    <button id="btn-pause" class="btn-pause">Pause</button>
+                    <button id="btn-resume" class="btn-resume">Resume</button>
+                </div>
+                <button id="btn-clear-fault" class="btn-full btn-fault">Clear Fault</button>
+            </div>
+
+            <!-- Panel 2: Inspection Rule Parameters -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Inspection Rule Parameters</h2>
+                </div>
+                <p class="panel-desc">
+                    Reject part (<span class="txt-fail">FAIL</span>) when
+                    <code>(part_id + K) mod N == 0</code>
+                </p>
+
+                <div class="field-row-2">
+                    <div class="field-group">
+                        <label for="input-rule-n">Modulus N (&ge; 1)</label>
+                        <input type="number" id="input-rule-n" class="mono" value="5" min="1">
+                    </div>
+                    <div class="field-group">
+                        <label for="input-rule-k">Offset K (&ge; 0)</label>
+                        <input type="number" id="input-rule-k" class="mono" value="2" min="0">
+                    </div>
+                </div>
+
+                <div class="rule-sim-box">
+                    <span class="sim-title">Rule Preview (Parts 1–8):</span>
+                    <div id="rule-preview-chips" class="chip-wrap mono"></div>
+                </div>
+
+                <button id="btn-set-config" class="btn-full btn-accent">Apply Rule Parameters</button>
+            </div>
+
+            <!-- Panel 3: Operating Mode & Reports -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Operating Mode &amp; Reports</h2>
+                </div>
+                <div class="action-grid">
+                    <button id="btn-mode-prod" class="btn-mode">Production</button>
+                    <button id="btn-mode-bench" class="btn-mode" title="Benchmarking mode">Benchmark</button>
+                </div>
+                <button id="btn-fetch-report" class="btn-full btn-outline" style="margin-top: 8px;">Fetch Latest Report</button>
+            </div>
+        </aside>
+
+        <!-- Right Telemetry Tables & Console -->
+        <section class="telemetry-column">
+            <!-- Table 1: 3-Stage Command Lifecycle -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Command Lifecycle Tracking</h2>
+                    <button id="btn-clear-cmds" class="btn-xs">Clear</button>
+                </div>
+                <p class="panel-desc">
+                    Tracks each <code>cmd_id</code> separately across <strong>Delivered</strong>, <strong>Accepted</strong>, and <strong>Completed</strong> stages.
+                </p>
+                <div class="table-scroll">
+                    <table id="table-cmds">
+                        <thead>
+                            <tr>
+                                <th>CMD ID</th>
+                                <th>Command</th>
+                                <th>1. Delivered</th>
+                                <th>2. Accepted</th>
+                                <th>3. Completed</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Table 2: Part & Inspection Pipeline -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Part &amp; Inspection Pipeline</h2>
+                    <button id="btn-clear-parts" class="btn-xs">Clear</button>
+                </div>
+                <div class="table-scroll" style="max-height: 235px;">
+                    <table id="table-parts">
+                        <thead>
+                            <tr>
+                                <th>Part ID</th>
+                                <th>Job ID</th>
+                                <th>Stage</th>
+                                <th>Verdict</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Console Log -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Event &amp; Protocol Log</h2>
+                    <button id="btn-clear-log" class="btn-xs">Clear</button>
+                </div>
+                <div id="log-box" class="scada-console mono"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Communication Client & HMI Controller -->
+    <script src="operator_client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Applied only when sdkconfig is created. If you change this file,
+# delete sdkconfig (or run "ESP-IDF: Full Clean") and build again.
+
+# 1 ms RTOS tick, so the main loop can wait 5 ms at a time.
+CONFIG_FREERTOS_HZ=1000
+
+# Wi-Fi, sockets and the log calls need more stack than the 3.5 KB default of app_main.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
