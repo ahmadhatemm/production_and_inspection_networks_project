@@ -306,7 +306,7 @@ Features assigned to later milestones, including formal communication benchmarki
 
 Some physical behaviours, such as the exact queue-full blocking and recovery sequence, were not conclusively established by the recorded physical evidence and should not be interpreted as fully verified.
 
-## 10. Drive Link for Videos and Screenshots** 
+## 10. Drive Link for Videos and Screenshots
 https://drive.google.com/drive/folders/1U3tSpgfAAdWNYgtdZGjCkuK5Q9MUFsst?usp=sharing
 
 **Project:** Production and Inspection Network  
