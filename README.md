@@ -306,15 +306,9 @@ Features assigned to later milestones, including formal communication benchmarki
 
 Some physical behaviours, such as the exact queue-full blocking and recovery sequence, were not conclusively established by the recorded physical evidence and should not be interpreted as fully verified.
 
-## 10. Contributors
-
-This project was developed collaboratively as part of the Industrial Networks course project.
-
-Add the names, student IDs, and individual responsibilities of all team members here.
-
----
-**Drive Link for Videos and Screenshots** 
+## 10. Drive Link for Videos and Screenshots** 
 https://drive.google.com/drive/folders/1U3tSpgfAAdWNYgtdZGjCkuK5Q9MUFsst?usp=sharing
+
 **Project:** Production and Inspection Network  
 **Course:** MCT 431 – Industrial Networks  
 **Main Technologies:** ESP32, ESP-IDF, C, Python, TCP, Wi-Fi, HTTP, WebSocket, HTML, CSS, JavaScript
