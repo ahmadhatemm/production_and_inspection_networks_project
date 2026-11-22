@@ -313,7 +313,8 @@ This project was developed collaboratively as part of the Industrial Networks co
 Add the names, student IDs, and individual responsibilities of all team members here.
 
 ---
-
+**Drive Link for Videos and Screenshots** 
+https://drive.google.com/drive/folders/1U3tSpgfAAdWNYgtdZGjCkuK5Q9MUFsst?usp=sharing
 **Project:** Production and Inspection Network  
 **Course:** MCT 431 – Industrial Networks  
 **Main Technologies:** ESP32, ESP-IDF, C, Python, TCP, Wi-Fi, HTTP, WebSocket, HTML, CSS, JavaScript
